@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import User from '../models/User.js';
 import Medication from '../models/Medication.js';
 import { seedNotifications } from './notificationController.js';
@@ -170,14 +171,13 @@ export const forgotPassword = async (req, res) => {
       return res.json({ success: true, message: 'If that email is registered, a reset link has been sent.' });
     }
 
-    const crypto = await import('crypto');
-    const token = crypto.default.randomBytes(32).toString('hex');
+    const token = crypto.randomBytes(32).toString('hex');
     user.resetPasswordToken = token;
     user.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hour
     await user.save({ validateModifiedOnly: true });
 
-    // TODO: send email with reset link containing token
-    console.log(`Password reset token for ${email}: ${token}`);
+    // TODO: send email with reset link containing token (e.g., using nodemailer or similar service)
+    // For security, we no longer log the token to the console
 
     res.json({ success: true, message: 'If that email is registered, a reset link has been sent.' });
   } catch (error) {
@@ -190,8 +190,23 @@ export const resetPassword = async (req, res) => {
   try {
     const { token, password } = req.body;
 
-    if (!token || !password) {
-      return res.status(422).json({ success: false, errors: { password: 'Token and new password are required' } });
+    const errors = {};
+
+    if (!token) {
+      errors.token = 'Reset token is required';
+    }
+    if (!password) {
+      errors.password = 'New password is required';
+    } else {
+      if (password.length < 8) errors.password = 'Password must be at least 8 characters';
+      else if (!/[A-Z]/.test(password)) errors.password = 'Password must contain at least one uppercase letter';
+      else if (!/[a-z]/.test(password)) errors.password = 'Password must contain at least one lowercase letter';
+      else if (!/[0-9]/.test(password)) errors.password = 'Password must contain at least one number';
+      else if (!/[^A-Za-z0-9]/.test(password)) errors.password = 'Password must contain at least one special character';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      return res.status(422).json({ success: false, errors });
     }
 
     const user = await User.findOne({
