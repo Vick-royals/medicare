@@ -1,6 +1,9 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
 import connectDB from "./config/db.js";
 import authRoutes from "./routes/auth.js";
 import medicationRoutes from "./routes/medications.js";
@@ -8,6 +11,9 @@ import consultationRoutes from "./routes/consultations.js";
 import notificationRoutes from "./routes/notifications.js";
 import adherenceRoutes from "./routes/adherence.js";
 import { seedConsultations } from "./controllers/consultationController.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 
@@ -30,6 +36,21 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/adherence", adherenceRoutes);
 
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
+
+// Find the dist folder
+let distPath = path.join(__dirname, "../dist");
+const rootDist = path.join(__dirname, "../../project/dist");
+if (fs.existsSync(rootDist)) {
+  distPath = rootDist;
+}
+
+// Serve frontend static files
+app.use(express.static(distPath));
+
+// Handle React Router client-side routing
+app.get("*", (_req, res) => {
+  res.sendFile(path.join(distPath, "index.html"));
+});
 
 app.use((err, _req, res, _next) => {
   console.error(err.stack);

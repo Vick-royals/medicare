@@ -1,4 +1,11 @@
 {
+  "name": "medicare-app",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "cd project && npm run dev",
+    "build": "cd project && npm run build",
+    "start": "cd project/server && npm start"
+  },
   "dependencies": {
     "dotenv": "^17.4.2",
     "mongoose": "^9.7.3"
